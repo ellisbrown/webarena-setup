@@ -2,12 +2,8 @@
 
 source 00_vars.sh
 
-# install flask in a venv
-apt install python3-venv -y
-python3 -m venv venv
-source venv/bin/activate
-pip install flask
-
+# activate venv with flask
+source .venv/bin/activate
 
 cd webarena-homepage
 cp templates/index.backup templates/index.html

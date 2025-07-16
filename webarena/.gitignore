@@ -1,3 +1,9 @@
 openstreetmap-website/
+reset_server/fail_message
+reset_server/server.log
+webarena-homepage/templates/index.html
+
 *.tar*
 *.zim
+.venv/
+__pycache__/

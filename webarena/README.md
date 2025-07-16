@@ -46,6 +46,16 @@ sudo bash 01_docker_load_images.sh
 
 Once these three steps are completed, you can get rid of the downloaded files (or unmount your shared folder) as these won't be needed any more.
 
+## Install Flask in a venv
+
+```bash
+# install flask in a venv
+sudo apt install python3-venv -y
+python3 -m venv .venv
+source .venv/bin/activate
+pip install flask
+```
+
 ## Run the server
 
 Easiest way is to start a tmux or screen session, then run scripts 02 to 06 in order. The last script serves the homepage and should stay up.
