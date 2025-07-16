@@ -32,7 +32,9 @@ assert [ -f ${ARCHIVES_LOCATION}/gitlab-populated-final-port8023.tar ]
 assert [ -f ${ARCHIVES_LOCATION}/openstreetmap-website-db.tar.gz ]
 assert [ -f ${ARCHIVES_LOCATION}/openstreetmap-website-web.tar.gz ]
 assert [ -f ${ARCHIVES_LOCATION}/openstreetmap-website.tar.gz ]
-assert [ -f ${ARCHIVES_LOCATION}/wikipedia_en_all_maxi_2022-05.zim ]
+if [ ! -f ${ARCHIVES_LOCATION}/wiki/wikipedia_en_all_maxi_2022-05.zim ]; then
+  assert [ -f ${ARCHIVES_LOCATION}/wikipedia_en_all_maxi_2022-05.zim ]
+fi
 
 # load docker images (if needed)
 load_docker_image "shopping_final_0712" "${ARCHIVES_LOCATION}/shopping_final_0712.tar"
@@ -52,10 +54,10 @@ fi
 
 # copy wikipedia archive to local folder (if needed)
 WIKIPEDIA_ARCHIVE=wikipedia_en_all_maxi_2022-05.zim
-if [ ! -f ./wiki/${WIKIPEDIA_ARCHIVE} ]; then
+if [ ! -f ${ARCHIVES_LOCATION}/wiki/${WIKIPEDIA_ARCHIVE} ]; then
   echo "Moving wikipedia archive..."
   mkdir -p ./wiki
-  cp ${ARCHIVES_LOCATION}/${WIKIPEDIA_ARCHIVE} ./wiki
+  cp ${ARCHIVES_LOCATION}/${WIKIPEDIA_ARCHIVE} ${ARCHIVES_LOCATION}/wiki
 else
   echo "Wikipedia archive already present."
 fi
