@@ -1,6 +1,6 @@
 openstreetmap-website/
 reset_server/fail_message
-reset_server/server.log
+server.log
 webarena-homepage/templates/index.html
 
 *.tar*

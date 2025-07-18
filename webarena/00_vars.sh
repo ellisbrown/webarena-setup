@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Automatically export all variables
+set -a
+
 # PUBLIC_HOSTNAME=$(curl -s ifconfig.me)
 PUBLIC_HOSTNAME="YOUR_HOSTNAME_HERE"
 
@@ -28,6 +31,13 @@ REDDIT_URL="http://${PUBLIC_HOSTNAME}:${REDDIT_PORT}/forums/all"
 GITLAB_URL="http://${PUBLIC_HOSTNAME}:${GITLAB_PORT}/explore"
 WIKIPEDIA_URL="http://${PUBLIC_HOSTNAME}:${WIKIPEDIA_PORT}/wikipedia_en_all_maxi_2022-05/A/User:The_other_Kiwix_guy/Landing"
 MAP_URL="http://${PUBLIC_HOSTNAME}:${MAP_PORT}"
+
+
+# task viewer setup
+TASK_JSON_PATH="test.raw.json"  # relative to ./task_viewer/
+TASK_VIEWER_PORT=5000
+TASK_VIEWER_URL="http://${PUBLIC_HOSTNAME}:${TASK_VIEWER_PORT}"
+
 
 # download the archives from the webarena instructions
 # https://github.com/web-arena-x/webarena/tree/main/environment_docker

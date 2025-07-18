@@ -150,6 +150,15 @@
             </a>
             <p id="appDescription">Manual on using the admin portal</p>
         </div>
+
+        <div class="card" role="region" aria-label="Task Viewer">
+            <img src="{{ url_for('static', filename='figures/task-viewer.png') }}"  alt="Logo for Task Viewer">
+            <a href="TASK_VIEWER_URL">
+                <h2 id="appName">Task Viewer</h2>
+            </a>
+            <p id="appDescription">Browse and view WebArena tasks</p>
+        </div>
+
         <!-- Repeat the above card structure for each app -->
 
     </div>

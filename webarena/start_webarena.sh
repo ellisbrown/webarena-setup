@@ -38,6 +38,10 @@ if [ $SESSION_EXISTS != 0 ]; then
     tmux new-window -t $SESSION_NAME -n reset
     tmux send-keys -t $SESSION_NAME:reset "cd $WEBARENA_DIR && sudo bash 07_serve_reset.sh" C-m
     
+    # Create window for task viewer
+    tmux new-window -t $SESSION_NAME -n task_viewer
+    tmux send-keys -t $SESSION_NAME:task_viewer "cd $WEBARENA_DIR && sudo bash 08_serve_task_viewer.sh" C-m
+    
     # Create window for setup
     tmux new-window -t $SESSION_NAME -n setup
     
@@ -51,7 +55,7 @@ if [ $SESSION_EXISTS != 0 ]; then
     
     echo "WebArena services starting up..."
     echo "To view status: tmux attach -t $SESSION_NAME"
-    echo "To switch windows: Ctrl-b + window number (0=homepage, 1=reset, 2=setup)"
+    echo "To switch windows: Ctrl-b + window number (0=homepage, 1=reset, 2=task_viewer, 3=setup)"
 else
     echo "Session $SESSION_NAME already exists!"
     echo "To attach: tmux attach -t $SESSION_NAME"
