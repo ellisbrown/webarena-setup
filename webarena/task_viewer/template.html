@@ -170,6 +170,115 @@
             font-size: 14px;
             color: #666;
         }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 50px auto;
+            padding: 0;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 20px;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+            transition: color 0.2s;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: #000;
+        }
+        
+        .json-content {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+        
+        .error {
+            color: #dc3545;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 20px;
+            right: 60px;
+            padding: 6px 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+        
+        .copy-btn.copied {
+            background: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -245,7 +354,25 @@
         {% endfor %}
     </div>
     
+    <!-- Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Task Details</h2>
+                <button class="copy-btn" onclick="copyToClipboard()">Copy JSON</button>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent" class="json-content">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script>
+        let currentTaskData = null;
+        
         function filterTasks(site) {
             const cards = document.querySelectorAll('.task-card');
             const buttons = document.querySelectorAll('.filter-btn');
@@ -270,9 +397,82 @@
         }
         
         function showTaskDetails(taskId) {
-            // In a real implementation, this would show a modal with full JSON
-            alert('Task JSON viewer not implemented. Task ID: ' + taskId);
+            const modal = document.getElementById('taskModal');
+            const modalContent = document.getElementById('modalContent');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            // Show modal with loading state
+            modal.style.display = 'block';
+            modalTitle.textContent = `Task #${taskId} Details`;
+            modalContent.innerHTML = '<div class="loading">Loading task details...</div>';
+            
+            // Fetch task details
+            fetch(`/task/${taskId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Task not found');
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    // Extract JSON from pre tags
+                    const jsonMatch = data.match(/<pre>([\s\S]*)<\/pre>/);
+                    if (jsonMatch) {
+                        currentTaskData = jsonMatch[1];
+                        modalContent.textContent = currentTaskData;
+                    } else {
+                        modalContent.innerHTML = '<div class="error">Error parsing task data</div>';
+                    }
+                })
+                .catch(error => {
+                    modalContent.innerHTML = `<div class="error">Error loading task: ${error.message}</div>`;
+                });
         }
+        
+        function closeModal() {
+            const modal = document.getElementById('taskModal');
+            modal.style.display = 'none';
+            currentTaskData = null;
+            
+            // Reset copy button
+            const copyBtn = document.querySelector('.copy-btn');
+            copyBtn.textContent = 'Copy JSON';
+            copyBtn.classList.remove('copied');
+        }
+        
+        function copyToClipboard() {
+            if (!currentTaskData) return;
+            
+            navigator.clipboard.writeText(currentTaskData)
+                .then(() => {
+                    const copyBtn = document.querySelector('.copy-btn');
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy JSON';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+        }
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('taskModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
