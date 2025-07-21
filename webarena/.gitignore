@@ -7,3 +7,4 @@ webarena-homepage/templates/index.html
 *.zim
 .venv/
 __pycache__/
+trajs/
