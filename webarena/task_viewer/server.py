@@ -17,6 +17,7 @@ TASK_URLS = {
 TASK_VIEWER_PORT = int(os.environ.get('TASK_VIEWER_PORT', 5000))
 TASK_JSON_PATH = os.environ.get('TASK_JSON_PATH', 'webarena_tasks.json')
 TRACES_DIR = os.environ.get('TRACES_DIR', '../trajs')  # Default to sibling trajs directory
+REVIEWED_JSON_PATH = os.environ.get('REVIEWED_JSON_PATH', 'reviewed_tasks.json')
 
 app = Flask(__name__)
 
@@ -43,6 +44,17 @@ def load_trace_ids(trace_dir) -> set[str]:
     print(f"Loaded {len(trace_ids)} trace ids from {trace_dir}")
     return trace_ids
 
+def load_reviewed():
+    """Load reviewed state and notes from disk (task_id -> {reviewed, notes})"""
+    if not Path(REVIEWED_JSON_PATH).exists():
+        return {}
+    with open(REVIEWED_JSON_PATH, 'r') as f:
+        return json.load(f)
+
+def save_reviewed(reviewed):
+    with open(REVIEWED_JSON_PATH, 'w') as f:
+        json.dump(reviewed, f)
+
 def get_task_url(task):
     """Generate URL for the task based on the site"""
     site = task['sites'][0]
@@ -57,15 +69,46 @@ def get_trace_url(task_id):
     encoded_url = up.quote(trace_file_url, safe='')
     return f"https://trace.playwright.dev/?trace={encoded_url}"
 
+@app.route('/reviewed/<int:task_id>', methods=['POST'])
+def set_reviewed(task_id):
+    reviewed = load_reviewed()
+    data = request.get_json(force=True)
+    entry = reviewed.get(str(task_id), {})
+    entry['reviewed'] = bool(data.get('reviewed', False))
+    entry['notes'] = entry.get('notes', '')
+    reviewed[str(task_id)] = entry
+    save_reviewed(reviewed)
+    return {'success': True, 'task_id': task_id, 'reviewed': entry['reviewed']}
+
+@app.route('/notes/<int:task_id>', methods=['GET', 'POST'])
+def notes(task_id):
+    reviewed = load_reviewed()
+    key = str(task_id)
+    if request.method == 'POST':
+        data = request.get_json(force=True)
+        entry = reviewed.get(key, {})
+        entry['notes'] = data.get('notes', '')
+        entry['reviewed'] = entry.get('reviewed', False)
+        reviewed[key] = entry
+        save_reviewed(reviewed)
+        return {'success': True, 'task_id': task_id, 'notes': entry['notes']}
+    else:
+        entry = reviewed.get(key, {})
+        return {'success': True, 'task_id': task_id, 'notes': entry.get('notes', '')}
+
 @app.route('/')
 def index():
     # Load tasks from your JSON file
     tasks = load_tasks(TASK_JSON_PATH)
     trace_ids = load_trace_ids(TRACES_DIR)
+    reviewed = load_reviewed()
 
-    # Add trace availability info to each task
+    # Add trace, reviewed, and notes info to each task
     for task in tasks:
+        entry = reviewed.get(str(task['task_id']), {})
         task['has_trace'] = task['task_id'] in trace_ids
+        task['reviewed'] = entry.get('reviewed', False)
+        task['notes'] = entry.get('notes', '')
     
     # Get unique sites and counts
     sites = list(set(task['sites'][0] for task in tasks))

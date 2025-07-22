@@ -8,3 +8,4 @@ webarena-homepage/templates/index.html
 .venv/
 __pycache__/
 trajs/
+reviewed_tasks.json

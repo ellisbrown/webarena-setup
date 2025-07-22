@@ -26,10 +26,15 @@
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: transform 0.2s;
+            position: relative;
         }
         .task-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .task-card.reviewed {
+            opacity: 0.5;
+            filter: grayscale(0.7);
         }
         .task-header {
             display: flex;
@@ -370,7 +375,28 @@
                 {% if task.has_trace %}
                 <a href="{{ get_trace_url(task.task_id) }}" target="_blank" class="btn btn-trace">View Trace</a>
                 {% endif %}
-                <button class="btn btn-secondary" onclick="showTaskDetails({{ task.task_id }})">View JSON</button>
+                <button class="btn btn-secondary" onclick="showTaskDetails('{{ task.task_id }}')">View JSON</button>
+            </div>
+            <div class="notes-action-section" style="margin-top: 10px; display: flex; flex-direction: column; align-items: center; border: 1px solid #e0e0e0; border-radius: 6px; padding: 14px 12px; background: #fafbfc;">
+                <div style="display: flex; width: 100%; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <button class="btn btn-notes" data-task-id="{{ task.task_id }}" style="background: #f1f3f4; color: #444; border: 1px solid #e0e0e0;">
+                        {% if task.notes %}Edit Notes{% else %}Add Notes{% endif %}
+                    </button>
+                    <label style="font-size:13px; margin-left: 10px;">
+                        <input type="checkbox" class="reviewed-checkbox" data-task-id="{{ task.task_id }}" {% if task.reviewed %}checked{% endif %}>
+                        Reviewed
+                    </label>
+                </div>
+                <div class="notes-section" data-task-id="{{ task.task_id }}" style="width: 100%;">
+                    <div class="notes-display" style="margin-bottom: 5px;">
+                        <span class="notes-text">{{ task.notes|replace('\n', '<br>')|safe }}</span>
+                    </div>
+                    <div class="notes-editor" style="display:none; margin-top:5px;">
+                        <textarea rows="3" style="width:100%; resize:vertical;">{{ task.notes }}</textarea>
+                        <button class="btn btn-primary btn-save-notes" style="margin-top:5px;">Save</button>
+                        <button class="btn btn-secondary btn-cancel-notes" style="margin-top:5px;">Cancel</button>
+                    </div>
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -526,6 +552,74 @@
             if (event.key === 'Escape') {
                 closeModal();
             }
+        });
+
+        // On page load, set reviewed state
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.task-card').forEach(function(card) {
+                var checkbox = card.querySelector('.reviewed-checkbox');
+                if (!checkbox) return;
+                var taskId = checkbox.getAttribute('data-task-id');
+                if (checkbox.checked) {
+                    card.classList.add('reviewed');
+                }
+                checkbox.addEventListener('change', function(e) {
+                    var checked = this.checked;
+                    fetch('/reviewed/' + taskId, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reviewed: checked })
+                    }).then(function(resp) { return resp.json(); }).then(function(data) {
+                        if (data.success) {
+                            if (checked) {
+                                card.classList.add('reviewed');
+                            } else {
+                                card.classList.remove('reviewed');
+                            }
+                        }
+                    });
+                });
+                // Notes logic
+                var notesActionSection = card.querySelector('.notes-action-section');
+                var notesBtn = notesActionSection ? notesActionSection.querySelector('.btn-notes') : null;
+                var notesSection = notesActionSection ? notesActionSection.querySelector('.notes-section') : null;
+                var notesDisplay = notesSection ? notesSection.querySelector('.notes-display') : null;
+                var notesEditor = notesSection ? notesSection.querySelector('.notes-editor') : null;
+                var notesTextarea = notesEditor ? notesEditor.querySelector('textarea') : null;
+                var saveBtn = notesEditor ? notesEditor.querySelector('.btn-save-notes') : null;
+                var cancelBtn = notesEditor ? notesEditor.querySelector('.btn-cancel-notes') : null;
+                if (notesBtn && notesEditor && notesTextarea && notesDisplay) {
+                    notesBtn.addEventListener('click', function() {
+                        notesEditor.style.display = '';
+                        notesDisplay.style.display = 'none';
+                        notesTextarea.focus();
+                    });
+                    if (cancelBtn) {
+                        cancelBtn.addEventListener('click', function() {
+                            notesEditor.style.display = 'none';
+                            notesDisplay.style.display = '';
+                        });
+                    }
+                    if (saveBtn) {
+                        saveBtn.addEventListener('click', function() {
+                            var notes = notesTextarea.value;
+                            fetch('/notes/' + taskId, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ notes: notes })
+                            }).then(function(resp) { return resp.json(); }).then(function(data) {
+                                if (data.success) {
+                                    notesDisplay.querySelector('.notes-text').innerHTML = notes.replace(/\n/g, '<br>');
+                                    notesDisplay.style.display = '';
+                                    notesEditor.style.display = 'none';
+                                    // Change button text to Edit Notes if note exists
+                                    if (notesBtn) notesBtn.textContent = notes ? 'Edit Notes' : 'Add Notes';
+                                }
+                            });
+                        });
+                    }
+                }
+            });
         });
     </script>
 </body>
