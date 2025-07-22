@@ -2,9 +2,9 @@ import json
 import os
 from functools import lru_cache
 from pathlib import Path
-import urllib.parse as up
-
-from flask import Flask, render_template_string, send_from_directory, request
+import subprocess
+import time
+from flask import Flask, render_template_string, send_from_directory, request, jsonify
 
 # Task URL constants from environment variables
 TASK_URLS = {
@@ -22,6 +22,9 @@ app = Flask(__name__)
 
 # HTML template for the task viewer
 TEMPLATE = Path('template.html').read_text()
+
+# Track running trace viewers
+trace_viewers = {}
 
 @lru_cache(maxsize=1)
 def load_tasks(filepath):
@@ -50,10 +53,21 @@ def get_task_url(task):
 
 def get_trace_url(task_id):
     """Generate URL for viewing the trace"""
-    # URL encode the trace file URL
-    trace_file_url = f"{request.url_root}traces/{task_id}.trace.zip"
-    encoded_url = up.quote(trace_file_url, safe='')
-    return f"https://trace.playwright.dev/?trace={encoded_url}"
+    # Return a URL that will trigger our launch endpoint
+    return f"/launch-trace/{task_id}"
+
+def find_free_port(start_port=9000):
+    """Find a free port starting from start_port"""
+    import socket
+    port = start_port
+    while port < start_port + 100:  # Try 100 ports
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('', port))
+                return port
+        except OSError:
+            port += 1
+    raise RuntimeError("No free ports found")
 
 @app.route('/')
 def index():
@@ -91,15 +105,111 @@ def task_detail(task_id):
     else:
         return "Task not found", 404
 
-@app.route('/traces/<path:filename>')
-def serve_trace(filename):
-    """Serve trace files with CORS headers"""
-    traces_path = Path(TRACES_DIR).resolve()
-    print(f"Serving trace file: {filename} from {traces_path}")
-    response = send_from_directory(traces_path, filename, mimetype='application/zip')
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET'
-    return response
+@app.route('/launch-trace/<int:task_id>')
+def launch_trace(task_id):
+    """Launch playwright trace viewer for a specific task"""
+    trace_path = Path(TRACES_DIR).absolute() / f"{task_id}.trace.zip"
+    
+    if not trace_path.exists():
+        return "Trace not found", 404
+    
+    # Check if viewer already running for this task
+    if task_id in trace_viewers and trace_viewers[task_id]['process'].poll() is None:
+        # Viewer already running, redirect to it
+        port = trace_viewers[task_id]['port']
+        viewer_url = f"http://{request.host.split(':')[0]}:{port}"
+        return f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+            <h2>Trace Viewer Already Running</h2>
+            <p>The trace viewer for task #{task_id} is already running on port {port}</p>
+            <a href="{viewer_url}" target="_blank" style="display: inline-block; margin: 20px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Open Trace Viewer</a>
+            <br><br>
+            <a href="/" style="color: #666;">← Back to Task List</a>
+        </body>
+        </html>
+        """
+    
+    try:
+        # Find a free port
+        port = find_free_port()
+        
+        # Launch playwright trace viewer
+        cmd = [
+            "playwright", "show-trace",
+            str(trace_path.absolute()),
+            "--host", "0.0.0.0",
+            "--port", str(port)
+        ]
+        
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        # Store process info
+        trace_viewers[task_id] = {
+            'process': process,
+            'port': port,
+            'started_at': time.time()
+        }
+        
+        # Wait a moment for the server to start
+        time.sleep(1)
+        
+        # Generate viewer URL
+        viewer_url = f"http://{request.host.split(':')[0]}:{port}"
+        
+        return f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
+            <h2>Trace Viewer Launched</h2>
+            <p>Playwright trace viewer for task #{task_id} is now running on port {port}</p>
+            <a href="{viewer_url}" target="_blank" style="display: inline-block; margin: 20px; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">Open Trace Viewer</a>
+            <br><br>
+            <p style="color: #666;">The viewer will remain open until you close it or stop this server.</p>
+            <a href="/" style="color: #666;">← Back to Task List</a>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        return f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 40px;">
+            <h2>Error Launching Trace Viewer</h2>
+            <p style="color: #dc3545;">Failed to launch trace viewer: {str(e)}</p>
+            <p>Make sure Playwright is installed: <code>npm install -g playwright</code></p>
+            <br>
+            <a href="/" style="color: #666;">← Back to Task List</a>
+        </body>
+        </html>
+        """
+
+@app.route('/trace-status')
+def trace_status():
+    """Get status of running trace viewers"""
+    status = {}
+    for task_id, info in list(trace_viewers.items()):
+        if info['process'].poll() is None:
+            status[task_id] = {
+                'port': info['port'],
+                'running': True,
+                'uptime': int(time.time() - info['started_at'])
+            }
+        else:
+            # Process ended, remove from list
+            del trace_viewers[task_id]
+    
+    return jsonify(status)
+
+def cleanup_trace_viewers():
+    """Clean up any running trace viewer processes"""
+    for task_id, info in trace_viewers.items():
+        if info['process'].poll() is None:
+            info['process'].terminate()
+            print(f"Terminated trace viewer for task {task_id}")
 
 if __name__ == '__main__':
     print("WebArena Task Viewer Server Starting...")
@@ -118,6 +228,18 @@ if __name__ == '__main__':
     else:
         print("WARNING: Traces directory not found!")
     
+    # Check if playwright is installed
+    try:
+        subprocess.run(["playwright", "--version"], capture_output=True, check=True)
+        print("\n✓ Playwright CLI is installed")
+    except:
+        print("\n⚠ WARNING: Playwright CLI not found!")
+        print("  Install with: npm install -g playwright")
+    
+    print("\nTrace viewer mode: Launch local Playwright viewers on-demand")
     print()
     
-    app.run(host='0.0.0.0', port=TASK_VIEWER_PORT, debug=True)
+    try:
+        app.run(host='0.0.0.0', port=TASK_VIEWER_PORT, debug=True)
+    finally:
+        cleanup_trace_viewers()
