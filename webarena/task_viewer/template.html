@@ -120,6 +120,13 @@
         .btn-secondary:hover {
             background: #545b62;
         }
+        .btn-trace {
+            background: #fd7e14;
+            color: white;
+        }
+        .btn-trace:hover {
+            background: #e56910;
+        }
         .filter-section {
             margin: 20px 0;
             padding: 20px;
@@ -289,6 +296,10 @@
             <div class="stat-value">{{ tasks|length }}</div>
             <div class="stat-label">Total Tasks</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ tasks|selectattr('has_trace')|list|length }}</div>
+            <div class="stat-label">With Traces</div>
+        </div>
         {% for site, count in site_counts.items() %}
         <div class="stat-card">
             <div class="stat-value">{{ count }}</div>
@@ -348,6 +359,9 @@
             
             <div class="task-actions">
                 <a href="{{ get_task_url(task) }}" target="_blank" class="btn btn-primary">Try Task</a>
+                {% if task.has_trace %}
+                <a href="{{ get_trace_url(task.task_id) }}" target="_blank" class="btn btn-trace">View Trace</a>
+                {% endif %}
                 <button class="btn btn-secondary" onclick="showTaskDetails({{ task.task_id }})">View JSON</button>
             </div>
         </div>
