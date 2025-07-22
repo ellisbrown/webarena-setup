@@ -286,6 +286,13 @@
         .copy-btn.copied {
             background: #6c757d;
         }
+        
+        /* JSON syntax highlighting */
+        .json-key { color: #c92c2c; }
+        .json-string { color: #2a7b3f; }
+        .json-number { color: #1c6ca1; }
+        .json-boolean { color: #b36a00; font-style: italic; }
+        .json-null { color: #808080; font-style: italic; }
     </style>
 </head>
 <body>
@@ -416,6 +423,28 @@
             });
         }
         
+        function syntaxHighlight(json) {
+            if (typeof json != 'string') {
+                json = JSON.stringify(json, undefined, 2);
+            }
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+        
         function showTaskDetails(taskId) {
             const modal = document.getElementById('taskModal');
             const modalContent = document.getElementById('modalContent');
@@ -439,7 +468,12 @@
                     const jsonMatch = data.match(/<pre>([\s\S]*)<\/pre>/);
                     if (jsonMatch) {
                         currentTaskData = jsonMatch[1];
-                        modalContent.textContent = currentTaskData;
+                        try {
+                            modalContent.innerHTML = syntaxHighlight(JSON.parse(currentTaskData));
+                        } catch (e) {
+                            // fallback if parsing fails
+                            modalContent.textContent = currentTaskData;
+                        }
                     } else {
                         modalContent.innerHTML = '<div class="error">Error parsing task data</div>';
                     }
