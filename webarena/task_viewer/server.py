@@ -6,13 +6,14 @@ import urllib.parse as up
 
 from flask import Flask, render_template_string, send_from_directory, request
 
-# Task URL constants from environment variables
-TASK_URLS = {
-    'shopping_admin': os.environ.get('SHOPPING_ADMIN_URL', 'http://localhost:7780/admin'),
-    'map': os.environ.get('MAP_URL', 'http://localhost:3000'),
-    'reddit': os.environ.get('REDDIT_URL', 'http://localhost:9999/forums/all'),
-    'gitlab': os.environ.get('GITLAB_URL', 'http://localhost:8023/explore'),
-    'wikipedia': os.environ.get('WIKIPEDIA_URL', 'http://localhost:8888/wikipedia_en_all_maxi_2022-05/A/User:The_other_Kiwix_guy/Landing')
+# Site URL constants from environment variables
+SITE_URLS = {
+    '__SHOPPING__': os.environ.get('SHOPPING_URL', 'http://localhost:7770'),
+    '__SHOPPING_ADMIN__': os.environ.get('SHOPPING_ADMIN_URL', 'http://localhost:7780/admin'),
+    '__MAP__': os.environ.get('MAP_URL', 'http://localhost:3000'),
+    '__REDDIT__': os.environ.get('REDDIT_URL', 'http://localhost:9999/forums/all'),
+    '__GITLAB__': os.environ.get('GITLAB_URL', 'http://localhost:8023/explore'),
+    '__WIKIPEDIA__': os.environ.get('WIKIPEDIA_URL', 'http://localhost:8888/wikipedia_en_all_maxi_2022-05/A/User:The_other_Kiwix_guy/Landing')
 }
 TASK_VIEWER_PORT = int(os.environ.get('TASK_VIEWER_PORT', 5000))
 TASK_JSON_PATH = os.environ.get('TASK_JSON_PATH', 'webarena_tasks.json')
@@ -57,8 +58,11 @@ def save_reviewed(reviewed):
 
 def get_task_url(task):
     """Generate URL for the task based on the site"""
-    site = task['sites'][0]
-    return TASK_URLS.get(site, task.get('start_url', '#'))
+    start_url = task.get('start_url', '#')  # eg "__GITLAB__", "__SHOPPING__/path/to/subpage"
+    # replace __SITE__ with the corresponding URL
+    for site, url in SITE_URLS.items():
+        start_url = start_url.replace(site, url)
+    return start_url
 
 def get_trace_url(task_id):
     """Generate URL for viewing the trace (served from local laptop)"""
@@ -152,7 +156,7 @@ if __name__ == '__main__':
     print("WebArena Task Viewer Server Starting...")
     print(f"Server will run on port: {TASK_VIEWER_PORT}")
     print("\nTask URLs:")
-    for site, url in TASK_URLS.items():
+    for site, url in SITE_URLS.items():
         print(f"  {site}: {url}")
     print(f"\nTask JSON path: {TASK_JSON_PATH}")
     print(f"Traces directory: {Path(TRACES_DIR).resolve()}")
