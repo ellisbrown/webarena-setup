@@ -312,6 +312,7 @@
         <h3>Filter by Site:</h3>
         <div class="filter-buttons">
             <button class="filter-btn active" onclick="filterTasks('all')">All</button>
+            <button class="filter-btn" onclick="filterTasks('with_traces')">With Traces</button>
             {% for site in sites %}
             <button class="filter-btn" onclick="filterTasks('{{ site }}')">{{ site|replace('_', ' ')|title }}</button>
             {% endfor %}
@@ -320,7 +321,7 @@
     
     <div class="task-grid">
         {% for task in tasks %}
-        <div class="task-card" data-site="{{ task.sites[0] }}">
+        <div class="task-card" data-site="{{ task.sites[0] }}" data-has-trace="{{ 'true' if task.has_trace else 'false' }}">
             <div class="task-header">
                 <span class="task-id">Task #{{ task.task_id }}</span>
                 <span class="site-badge site-{{ task.sites[0] }}">{{ task.sites[0]|replace('_', ' ') }}</span>
@@ -394,18 +395,23 @@
             // Update button states
             buttons.forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.textContent.toLowerCase() === site || 
-                    (site === 'all' && btn.textContent === 'All')) {
+                if (
+                    (site === 'all' && btn.textContent === 'All') ||
+                    (site === 'with_traces' && btn.textContent === 'With Traces') ||
+                    (btn.textContent.toLowerCase() === site)
+                ) {
                     btn.classList.add('active');
                 }
             });
             
             // Filter cards
             cards.forEach(card => {
-                if (site === 'all' || card.dataset.site === site) {
+                if (site === 'all') {
                     card.style.display = 'block';
+                } else if (site === 'with_traces') {
+                    card.style.display = card.dataset.hasTrace === 'true' ? 'block' : 'none';
                 } else {
-                    card.style.display = 'none';
+                    card.style.display = card.dataset.site === site ? 'block' : 'none';
                 }
             });
         }
