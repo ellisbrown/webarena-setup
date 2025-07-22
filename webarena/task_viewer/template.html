@@ -320,13 +320,18 @@
         {% endfor %}
     </div>
     
-    <div class="filter-section">
-        <h3>Filter by Site:</h3>
-        <div class="filter-buttons">
-            <button class="filter-btn active" onclick="filterTasks('all')">All</button>
-            <button class="filter-btn" onclick="filterTasks('with_traces')">With Traces</button>
+    <div class="filter-section" style="margin-bottom: 10px;">
+        <h3>Filters:</h3>
+        <div class="filter-buttons" id="extra-filters">
+            <button class="filter-btn" data-filter="traces">With Traces</button>
+            <button class="filter-btn" data-filter="reviewed">Reviewed</button>
+            <button class="filter-btn" data-filter="notes">With Notes</button>
+        </div>
+        <h4>By Site:</h4>
+        <div class="filter-buttons" id="site-filters">
+            <button class="filter-btn active" data-site="all">All</button>
             {% for site in sites %}
-            <button class="filter-btn" onclick="filterTasks('{{ site }}')">{{ site|replace('_', ' ')|title }}</button>
+            <button class="filter-btn" data-site="{{ site }}">{{ site|replace('_', ' ')|title }}</button>
             {% endfor %}
         </div>
     </div>
@@ -421,33 +426,57 @@
     <script>
         let currentTaskData = null;
         
-        function filterTasks(site) {
+        // Filtering logic
+        let currentSite = 'all';
+        let activeFilters = { traces: false, reviewed: false, notes: false };
+
+        function applyFilters() {
             const cards = document.querySelectorAll('.task-card');
-            const buttons = document.querySelectorAll('.filter-btn');
-            
-            // Update button states
-            buttons.forEach(btn => {
-                btn.classList.remove('active');
-                if (
-                    (site === 'all' && btn.textContent === 'All') ||
-                    (site === 'with_traces' && btn.textContent === 'With Traces') ||
-                    (btn.textContent.toLowerCase() === site)
-                ) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            // Filter cards
             cards.forEach(card => {
-                if (site === 'all') {
-                    card.style.display = 'block';
-                } else if (site === 'with_traces') {
-                    card.style.display = card.dataset.hasTrace === 'true' ? 'block' : 'none';
-                } else {
-                    card.style.display = card.dataset.site === site ? 'block' : 'none';
+                let show = true;
+                // Site filter
+                if (currentSite !== 'all' && card.dataset.site !== currentSite) {
+                    show = false;
                 }
+                // Traces filter
+                if (activeFilters.traces && card.dataset.hasTrace !== 'true') {
+                    show = false;
+                }
+                // Reviewed filter
+                if (activeFilters.reviewed && card.querySelector('.reviewed-checkbox') && !card.querySelector('.reviewed-checkbox').checked) {
+                    show = false;
+                }
+                // Notes filter
+                if (activeFilters.notes) {
+                    const notesText = card.querySelector('.notes-text')?.textContent || '';
+                    if (!notesText.trim()) show = false;
+                }
+                card.style.display = show ? 'block' : 'none';
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Site filter buttons
+            document.querySelectorAll('#site-filters .filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('#site-filters .filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentSite = btn.dataset.site;
+                    applyFilters();
+                });
+            });
+            // Extra filters
+            document.querySelectorAll('#extra-filters .filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const filter = btn.dataset.filter;
+                    activeFilters[filter] = !activeFilters[filter];
+                    btn.classList.toggle('active', activeFilters[filter]);
+                    applyFilters();
+                });
+            });
+            // Initial filter
+            applyFilters();
+        });
         
         function syntaxHighlight(json) {
             if (typeof json != 'string') {
