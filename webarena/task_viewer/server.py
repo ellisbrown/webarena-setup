@@ -49,9 +49,11 @@ def get_task_url(task):
     return TASK_URLS.get(site, task.get('start_url', '#'))
 
 def get_trace_url(task_id):
-    """Generate URL for viewing the trace"""
-    # URL encode the trace file URL
-    trace_file_url = f"{request.url_root}traces/{task_id}.trace.zip"
+    """Generate URL for viewing the trace (served from local laptop)"""
+    # Always point to localhost:54321 for trace files
+    # trace_file_url = f"http://[::]:54321/{task_id}.trace.zip"
+    # 5432 has a flask app running serving the trace files
+    trace_file_url = f"http://localhost:5432/traces/{task_id}.trace.zip"
     encoded_url = up.quote(trace_file_url, safe='')
     return f"https://trace.playwright.dev/?trace={encoded_url}"
 
