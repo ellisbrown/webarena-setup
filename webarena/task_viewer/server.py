@@ -110,11 +110,13 @@ def index():
         task['reviewed'] = entry.get('reviewed', False)
         task['notes'] = entry.get('notes', '')
     
-    # Get unique sites and counts
-    sites = list(set(task['sites'][0] for task in tasks))
-    site_counts = {}
-    for site in sites:
-        site_counts[site] = sum(1 for task in tasks if task['sites'][0] == site)
+    # Get unique sites and counts (support multiple sites per task)
+    from collections import Counter
+    all_sites = []
+    for task in tasks:
+        all_sites.extend(task['sites'])
+    sites = list(set(all_sites))
+    site_counts = dict(Counter(all_sites))
     
     return render_template_string(
         TEMPLATE, 

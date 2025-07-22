@@ -338,10 +338,14 @@
     
     <div class="task-grid">
         {% for task in tasks %}
-        <div class="task-card" data-site="{{ task.sites[0] }}" data-has-trace="{{ 'true' if task.has_trace else 'false' }}">
+        <div class="task-card" data-site="{{ task.sites|join(' ') }}" data-has-trace="{{ 'true' if task.has_trace else 'false' }}">
             <div class="task-header">
                 <span class="task-id">Task #{{ task.task_id }}</span>
-                <span class="site-badge site-{{ task.sites[0] }}">{{ task.sites[0]|replace('_', ' ') }}</span>
+                <span class="site-badges" style="display: flex; gap: 6px; margin-left: auto;">
+                    {% for site in task.sites %}
+                    <span class="site-badge site-{{ site }}">{{ site|replace('_', ' ') }}</span>
+                    {% endfor %}
+                </span>
             </div>
             
             <div class="task-intent">{{ task.intent }}</div>
@@ -435,8 +439,12 @@
             cards.forEach(card => {
                 let show = true;
                 // Site filter
-                if (currentSite !== 'all' && card.dataset.site !== currentSite) {
-                    show = false;
+                if (currentSite !== 'all') {
+                    // data-site is a space-separated list
+                    const sites = (card.dataset.site || '').split(' ');
+                    if (!sites.includes(currentSite)) {
+                        show = false;
+                    }
                 }
                 // Traces filter
                 if (activeFilters.traces && card.dataset.hasTrace !== 'true') {
