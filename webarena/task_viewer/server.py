@@ -11,8 +11,8 @@ SITE_URLS = {
     '__SHOPPING__': os.environ.get('SHOPPING_URL', 'http://localhost:7770'),
     '__SHOPPING_ADMIN__': os.environ.get('SHOPPING_ADMIN_URL', 'http://localhost:7780/admin'),
     '__MAP__': os.environ.get('MAP_URL', 'http://localhost:3000'),
-    '__REDDIT__': os.environ.get('REDDIT_URL', 'http://localhost:9999/forums/all'),
-    '__GITLAB__': os.environ.get('GITLAB_URL', 'http://localhost:8023/explore'),
+    '__REDDIT__': os.environ.get('REDDIT_URL', 'http://localhost:9999'),
+    '__GITLAB__': os.environ.get('GITLAB_URL', 'http://localhost:8023'),
     '__WIKIPEDIA__': os.environ.get('WIKIPEDIA_URL', 'http://localhost:8888/wikipedia_en_all_maxi_2022-05/A/User:The_other_Kiwix_guy/Landing')
 }
 TASK_VIEWER_PORT = int(os.environ.get('TASK_VIEWER_PORT', 5000))
