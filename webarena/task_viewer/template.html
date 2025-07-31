@@ -14,6 +14,32 @@
             color: #333;
             text-align: center;
         }
+        .task-file-selector {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .task-file-selector label {
+            font-weight: bold;
+            margin-right: 10px;
+            color: #333;
+        }
+        .task-file-selector select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        .task-file-selector select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
         .task-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -303,6 +329,15 @@
 <body>
     <h1>WebArena Task Viewer</h1>
     
+    <div class="task-file-selector">
+        <label for="task-file-select">Task File:</label>
+        <select id="task-file-select" onchange="changeTaskFile()">
+            {% for file in available_files %}
+            <option value="{{ file }}" {% if file == selected_file %}selected{% endif %}>{{ file }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
     <div class="stats">
         <div class="stat-card">
             <div class="stat-value">{{ tasks|length }}</div>
@@ -434,6 +469,14 @@
         let currentSite = 'all';
         let activeFilters = { traces: false, reviewed: false, notes: false };
 
+        function changeTaskFile() {
+            const select = document.getElementById('task-file-select');
+            const selectedFile = select.value;
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set('task_file', selectedFile);
+            window.location.href = currentUrl.toString();
+        }
+
         function applyFilters() {
             const cards = document.querySelectorAll('.task-card');
             cards.forEach(card => {
@@ -512,14 +555,15 @@
             const modal = document.getElementById('taskModal');
             const modalContent = document.getElementById('modalContent');
             const modalTitle = document.getElementById('modalTitle');
+            const selectedFile = document.getElementById('task-file-select').value;
             
             // Show modal with loading state
             modal.style.display = 'block';
             modalTitle.textContent = `Task #${taskId} Details`;
             modalContent.innerHTML = '<div class="loading">Loading task details...</div>';
             
-            // Fetch task details
-            fetch(`/task/${taskId}`)
+            // Fetch task details with selected file
+            fetch(`/task/${taskId}?task_file=${encodeURIComponent(selectedFile)}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Task not found');
@@ -602,10 +646,11 @@
                 }
                 checkbox.addEventListener('change', function(e) {
                     var checked = this.checked;
+                    var selectedFile = document.getElementById('task-file-select').value;
                     fetch('/reviewed/' + taskId, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ reviewed: checked })
+                        body: JSON.stringify({ reviewed: checked, task_file: selectedFile })
                     }).then(function(resp) { return resp.json(); }).then(function(data) {
                         if (data.success) {
                             if (checked) {
@@ -640,10 +685,11 @@
                     if (saveBtn) {
                         saveBtn.addEventListener('click', function() {
                             var notes = notesTextarea.value;
+                            var selectedFile = document.getElementById('task-file-select').value;
                             fetch('/notes/' + taskId, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ notes: notes })
+                                body: JSON.stringify({ notes: notes, task_file: selectedFile })
                             }).then(function(resp) { return resp.json(); }).then(function(data) {
                                 if (data.success) {
                                     notesDisplay.querySelector('.notes-text').innerHTML = notes.replace(/\n/g, '<br>');

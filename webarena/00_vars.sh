@@ -28,13 +28,14 @@ RESET_PORT=7565
 SHOPPING_URL="http://${PUBLIC_HOSTNAME}:${SHOPPING_PORT}"
 SHOPPING_ADMIN_URL="http://${PUBLIC_HOSTNAME}:${SHOPPING_ADMIN_PORT}/admin"
 REDDIT_URL="http://${PUBLIC_HOSTNAME}:${REDDIT_PORT}/forums/all"
-GITLAB_URL="http://${PUBLIC_HOSTNAME}:${GITLAB_PORT}/explore"
+GITLAB_URL="http://${PUBLIC_HOSTNAME}:${GITLAB_PORT}"
 WIKIPEDIA_URL="http://${PUBLIC_HOSTNAME}:${WIKIPEDIA_PORT}/wikipedia_en_all_maxi_2022-05/A/User:The_other_Kiwix_guy/Landing"
 MAP_URL="http://${PUBLIC_HOSTNAME}:${MAP_PORT}"
-
+HOMEPAGE_URL="http://${PUBLIC_HOSTNAME}:${HOMEPAGE_PORT}"
 
 # task viewer setup
-TASK_JSON_PATH="test.raw.json"  # relative to ./task_viewer/
+TASK_FILES_DIR="taskfiles"  # directory containing task JSON files
+TRACES_DIR="../trajs"
 TASK_VIEWER_PORT=5000
 TASK_VIEWER_URL="http://${PUBLIC_HOSTNAME}:${TASK_VIEWER_PORT}"
 
